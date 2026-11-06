@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ёлка «Знак Качества» — Предприятия на шарах</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    overflow: hidden; background: #061024;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    user-select: none;
+  }
+  #hud {
+    position: absolute; top: 12px; left: 12px; z-index: 10;
+    color: #e0f0ff; font: 13px/1.5 'Segoe UI', Arial, sans-serif;
+    background: rgba(8, 20, 42, 0.82); padding: 12px 16px;
+    border-radius: 10px; border: 1px solid rgba(255, 210, 122, 0.45);
+    backdrop-filter: blur(6px);
+    max-width: 340px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+  }
+  #hud b { color: #ffd27a; font-size: 14px; }
+  #hud .sub { color: #9ec5eb; font-size: 12px; margin-top: 4px; }
+  #balls-panel {
+    position: absolute; top: 12px; right: 12px; z-index: 10;
+    background: rgba(8, 20, 42, 0.82); padding: 10px 12px;
+    border-radius: 10px; border: 1px solid rgba(255, 210, 122, 0.4);
+    backdrop-filter: blur(6px);
+    color: #e0f0ff; width: 230px; max-height: calc(100vh - 110px);
+    overflow-y: auto;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+  }
+  #balls-panel h3 {
+    margin: 0 0 8px 0; font-size: 13px; color: #ffd27a;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .ball-btn {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; text-align: left;
+    background: rgba(255,255,255,0.06);
+    color: #e8f4ff; border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 7px; padding: 6px 9px; margin-bottom: 5px;
+    font: 12px/1.3 'Segoe UI', Arial, sans-serif;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .ball-btn:hover, .ball-btn.active {
+    background: rgba(255, 200, 80, 0.22);
+    border-color: #ffd27a; color: #fff;
+    transform: translateX(-2px);
+  }
+  .ball-dot {
+    width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+    box-shadow: 0 0 6px currentColor;
+  }
+  #garland-hud {
+    position: absolute; bottom: 14px; left: 50%;
+    transform: translateX(-50%); z-index: 10;
+    width: min(92vw, 880px);
+    background: linear-gradient(90deg, rgba(18,10,6,0.92), rgba(45,18,10,0.92), rgba(18,10,6,0.92));
+    border: 2px solid #ffb84d;
+    border-radius: 999px;
+    padding: 8px 20px;
+    box-shadow: 0 0 25px rgba(255, 165, 40, 0.45), inset 0 0 12px rgba(255, 210, 100, 0.25);
+    display: flex; align-items: center; gap: 12px;
+    overflow: hidden;
+  }
+  #garland-badge {
+    background: #d41c24; color: #ffe699;
+    font-weight: 700; font-size: 12px;
+    padding: 4px 10px; border-radius: 999px;
+    border: 1px solid #ffd27a; white-space: nowrap;
+    box-shadow: 0 0 10px rgba(255, 200, 80, 0.6);
+  }
+  #marquee-wrap {
+    flex: 1; overflow: hidden; white-space: nowrap; position: relative;
+    height: 24px; display: flex; align-items: center;
+  }
+  #marquee-text {
+    display: inline-block;
+    color: #fff3c4;
+    font: 700 15px/24px 'Courier New', monospace;
+    text-shadow: 0 0 8px #ffaa00, 0 0 16px #ff5500;
+    letter-spacing: 0.6px;
+    padding-left: 100%;
+    animation: ticker 34s linear infinite;
+  }
+  @keyframes ticker {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+  }
+  #tooltip {
+    position: absolute; pointer-events: none; z-index: 20;
+    background: rgba(10, 22, 46, 0.92); color: #ffd27a;
+    padding: 6px 11px; border-radius: 6px;
+    border: 1px solid #ffd27a; font-size: 12px; font-weight: bold;
+    display: none; white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+  }
+  @media (max-width: 640px) {
+    #balls-panel { width: 165px; padding: 8px; }
+    #hud { max-width: 200px; padding: 8px 10px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <b>Ёлка «Знак Качества»</b><br>
+  Нажмите на любой <b>шар с логотипом</b> на ёлке — и текст о предприятии вылетит по спиральной гирлянде бегущей строкой!<br>
+  <div class="sub">ЛКМ — вращение · Колесо — зум · ПКМ — сдвиг · Клик по шару — запуск строки</div>
+</div>
+
+<div id="balls-panel">
+  <h3>Шары предприятий</h3>
+  <div id="balls-list"></div>
+</div>
+
+<div id="garland-hud">
+  <span id="garland-badge">БЕЛАРУСЬ</span>
+  <div id="marquee-wrap">
+    <div id="marquee-text">★ НАЖМИТЕ НА ЛЮБОЙ ШАР НА ЁЛКЕ, ЧТОБЫ ЗАПУСТИТЬ БЕГУЩУЮ СТРОКУ ПО ГИРЛЯНДЕ О ПРЕДПРИЯТИИ ★</div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================================================
+// 1. ДАННЫЕ ПРЕДПРИЯТИЙ (ШАРЫ С ЛОГОТИПАМИ)
+// ============================================================
+const ENTERPRISES = [
+  {
+    id: 'belaz',
+    short: 'БЕЛАЗ',
+    name: 'ОАО «БЕЛАЗ»',
+    color: '#ff8800',
+    bg: '#163a70',
+    symbol: '🚛',
+    text: '★ ОАО «БЕЛАЗ» — Мировой лидер производства карьерных самосвалов особо большой грузоподъёмности! Самосвал БЕЛАЗ-75710 (450 тонн) удостоен Государственного знака качества за надёжность, инновации и рекордную производительность! ★'
+  },
+  {
+    id: 'mtz',
+    short: 'BELARUS',
+    name: 'ОАО «МТЗ» (BELARUS)',
+    color: '#e62229',
+    bg: '#7a0c12',
+    symbol: '🚜',
+    text: '★ ОАО «Минский тракторный завод» (BELARUS) — Легендарные тракторы, работающие более чем в 100 странах мира! Высший стандарт качества, мощности и долговечности в сельском хозяйстве! ★'
+  },
+  {
+    id: 'maz',
+    short: 'МАЗ',
+    name: 'ОАО «МАЗ»',
+    color: '#00a8ff',
+    bg: '#0b2c5c',
+    symbol: '🚌',
+    text: '★ ОАО «Минский автомобильный завод» (МАЗ) — Современные грузовики, пассажирские автобусы и электробусы нового поколения! Знак качества за передовое машиностроение и комфорт! ★'
+  },
+  {
+    id: 'kommunarka',
+    short: 'КОММУНАРКА',
+    name: 'СОАО «Коммунарка»',
+    color: '#ff3366',
+    bg: '#680824',
+    symbol: '🍫',
+    text: '★ СОАО «Коммунарка» — Старейшая кондитерская фабрика с вековыми традициями! Натуральный шоколад и конфеты «Столичные» и «Любимая Алёнка» отмечены Знаком качества! ★'
+  },
+  {
+    id: 'savushkin',
+    short: 'САВУШКИН',
+    name: 'ОАО «Савушкин продукт»',
+    color: '#33cc66',
+    bg: '#0c4f24',
+    symbol: '🥛',
+    text: '★ ОАО «Савушкин продукт» — Лидер молочной отрасли! Натуральные сыры, творог и йогурты из отборного молока с автоматизированным контролем качества на каждом этапе! ★'
+  },
+  {
+    id: 'gefest',
+    short: 'GEFEST',
+    name: 'СП ОАО «Брестгазоаппарат»',
+    color: '#ffaa22',
+    bg: '#4d2c08',
+    symbol: '🔥',
+    text: '★ GEFEST (СП ОАО «Брестгазоаппарат») — Надёжная кухонная техника, газовые и электрические плиты, которым доверяют миллионы семей! Безупречное качество сборки и долговечность! ★'
+  },
+  {
+    id: 'gomselmash',
+    short: 'ГОМСЕЛЬМАШ',
+    name: 'ОАО «Гомсельмаш»',
+    color: '#ff4444',
+    bg: '#5c1010',
+    symbol: '🌾',
+    text: '★ ОАО «Гомсельмаш» — Крупнейший производитель зерноуборочных и кормоуборочных комбайнов PALESSE! Хлеборобная мощь, удостоенная Государственного знака качества! ★'
+  },
+  {
+    id: 'integral',
+    short: 'ИНТЕГРАЛ',
+    name: 'ОАО «ИНТЕГРАЛ»',
+    color: '#44ddff',
+    bg: '#09384d',
+    symbol: '🔬',
+    text: '★ ОАО «ИНТЕГРАЛ» — Флагман микроэлектроники и высокотехнологичных интегральных микросхем! Космическая надёжность, точность и собственные научные разработки! ★'
+  },
+  {
+    id: 'klichev',
+    short: 'КЛИЧЕВЛЕС',
+    name: 'ГЛХУ «Кличевский лесхоз»',
+    color: '#44dd77',
+    bg: '#104422',
+    symbol: '🌲',
+    text: '★ Кличевский лесхоз — Бережное сохранение и приумножение лесного богатства края, современная деревообработка, экологическая чистота и образцовое лесное хозяйство! ★'
+  },
+  {
+    id: 'babushkina',
+    short: 'КРЫНКА',
+    name: 'ОАО «Бабушкина крынка»',
+    color: '#ffcc33',
+    bg: '#543808',
+    symbol: '🧀',
+    text: '★ ОАО «Бабушкина крынка» — Крупнейший производитель молочной продукции Могилёвщины! Традиционный вкус, золотые медали международных выставок и народное признание! ★'
+  }
+];
+
+// ============================================================
+// 2. СЦЕНА / КАМЕРА / РЕНДЕР
+// ============================================================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x061024);
+scene.fog = new THREE.FogExp2(0x061024, 0.0085);
+
+const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 500);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+// ============================================================
+// 3. ОСВЕЩЕНИЕ
+// ============================================================
+scene.add(new THREE.AmbientLight(0xd8e8ff, 0.75));
+
+const hemi = new THREE.HemisphereLight(0x88bbff, 0x1a3320, 0.65);
+scene.add(hemi);
+
+const dirLight = new THREE.DirectionalLight(0xfff4dd, 1.1);
+dirLight.position.set(35, 65, 45);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(2048, 2048);
+dirLight.shadow.camera.left = -50;
+dirLight.shadow.camera.right = 50;
+dirLight.shadow.camera.top = 50;
+dirLight.shadow.camera.bottom = -50;
+scene.add(dirLight);
+
+// ============================================================
+// 4. СНЕЖНАЯ ПЛОЩАДЬ И ПОДИУМ
+// ============================================================
+const snowGround = new THREE.Mesh(
+  new THREE.CircleGeometry(120, 64),
+  new THREE.MeshStandardMaterial({ color: 0xdcebf7, roughness: 0.85, metalness: 0.05 })
+);
+snowGround.rotation.x = -Math.PI / 2;
+snowGround.receiveShadow = true;
+scene.add(snowGround);
+
+const podiumGroup = new THREE.Group();
+const basePodium = new THREE.Mesh(
+  new THREE.CylinderGeometry(10.5, 11.5, 1.2, 48),
+  new THREE.MeshStandardMaterial({ color: 0x8b1e24, roughness: 0.4, metalness: 0.3 })
+);
+basePodium.position.y = 0.6;
+basePodium.receiveShadow = true;
+basePodium.castShadow = true;
+podiumGroup.add(basePodium);
+
+const goldRim = new THREE.Mesh(
+  new THREE.TorusGeometry(10.6, 0.18, 16, 64),
+  new THREE.MeshStandardMaterial({ color: 0xffcc44, metalness: 0.85, roughness: 0.2, emissive: 0x553300 })
+);
+goldRim.rotation.x = Math.PI / 2;
+goldRim.position.y = 1.2;
+podiumGroup.add(goldRim);
+
+const snowCap = new THREE.Mesh(
+  new THREE.CylinderGeometry(10.2, 10.2, 0.2, 48),
+  new THREE.MeshStandardMaterial({ color: 0xf4f9ff, roughness: 0.7 })
+);
+snowCap.position.y = 1.25;
+snowCap.receiveShadow = true;
+podiumGroup.add(snowCap);
+scene.add(podiumGroup);
+
+// ============================================================
+// 5. 3D-ЁЛКА (МНОГОЯРУСНАЯ ХВОЯ + СТВОЛ)
+// ============================================================
+const treeGroup = new THREE.Group();
+scene.add(treeGroup);
+
+const trunk = new THREE.Mesh(
+  new THREE.CylinderGeometry(1.1, 1.6, 6, 16),
+  new THREE.MeshStandardMaterial({ color: 0x4d2e18, roughness: 0.9 })
+);
+trunk.position.y = 3.5;
+trunk.castShadow = true;
+treeGroup.add(trunk);
+
+const pineMat = new THREE.MeshStandardMaterial({
+  color: 0x165b33,
+  roughness: 0.65,
+  metalness: 0.08,
+  flatShading: true
+});
+
+const tiers = [
+  { y: 6.2,  rBottom: 9.2, rTop: 2.2, h: 6.0 },
+  { y: 10.2, rBottom: 7.8, rTop: 1.8, h: 5.5 },
+  { y: 14.0, rBottom: 6.4, rTop: 1.4, h: 5.0 },
+  { y: 17.5, rBottom: 5.0, rTop: 1.0, h: 4.5 },
+  { y: 20.6, rBottom: 3.6, rTop: 0.6, h: 4.0 },
+  { y: 23.3, rBottom: 2.3, rTop: 0.15, h: 3.3 }
+];
+
+tiers.forEach(t => {
+  const cone = new THREE.Mesh(
+    new THREE.ConeGeometry(t.rBottom, t.h, 28, 2),
+    pineMat
+  );
+  cone.position.y = t.y;
+  cone.castShadow = true;
+  cone.receiveShadow = true;
+  treeGroup.add(cone);
+});
+
+// ============================================================
+// 6. МАКУШКА ЁЛКИ — ПРИКРЕПЛЁННЫЙ ЛОГОТИП «БЕЛАРУСЬ» (ЗНАК КАЧЕСТВА)
+// ============================================================
+const topperGroup = new THREE.Group();
+topperGroup.position.set(0, 26.6, 0);
+scene.add(topperGroup);
+
+const LOGO_DATA_URI = "data:image/png;base64,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";
+
+(function buildQualityMarkTopper() {
+  // Контур 3D-пятиугольника, точно повторяющий форму прикреплённого логотипа
+  const S = 2.45;
+  const pts = [
+    [ 0.00,  0.95 * S],
+    [-0.97 * S,  0.23 * S],
+    [-0.58 * S, -0.90 * S],
+    [ 0.58 * S, -0.90 * S],
+    [ 0.97 * S,  0.23 * S]
+  ];
+
+  const shape = new THREE.Shape();
+  pts.forEach((p, i) => {
+    if (i === 0) shape.moveTo(p[0], p[1]);
+    else shape.lineTo(p[0], p[1]);
+  });
+  shape.closePath();
+
+  const extrude = new THREE.ExtrudeGeometry(shape, {
+    depth: 0.36,
+    bevelEnabled: true,
+    bevelThickness: 0.09,
+    bevelSize: 0.08,
+    bevelSegments: 4
+  });
+  extrude.center();
+
+  // Торцевая часть в фирменном красном цвете знака
+  const redSideMat = new THREE.MeshStandardMaterial({
+    color: 0xc2151a,
+    metalness: 0.35,
+    roughness: 0.28,
+    emissive: 0x4a0406,
+    emissiveIntensity: 0.45
+  });
+  const pentagonBody = new THREE.Mesh(extrude, redSideMat);
+  topperGroup.add(pentagonBody);
+
+  // Загружаем прикреплённый логотип на лицевую и обратную стороны
+  const loader = new THREE.TextureLoader();
+  const logoTex = loader.load(LOGO_DATA_URI);
+  logoTex.anisotropy = 8;
+
+  const faceMat = new THREE.MeshBasicMaterial({
+    map: logoTex,
+    transparent: true,
+    alphaTest: 0.05
+  });
+
+  const planeSize = S * 2.02;
+  const faceFront = new THREE.Mesh(new THREE.PlaneGeometry(planeSize, planeSize), faceMat);
+  faceFront.position.z = 0.28;
+  topperGroup.add(faceFront);
+
+  const faceBack = new THREE.Mesh(new THREE.PlaneGeometry(planeSize, planeSize), faceMat);
+  faceBack.position.z = -0.28;
+  faceBack.rotation.y = Math.PI;
+  topperGroup.add(faceBack);
+
+  // Крепление к макушке ёлки
+  const stem = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.18, 0.34, 1.5, 16),
+    redSideMat
+  );
+  stem.position.y = -2.25;
+  topperGroup.add(stem);
+
+  // Мягкое свечение вокруг логотипа
+  const halo = new THREE.Mesh(
+    new THREE.RingGeometry(2.55, 3.0, 5),
+    new THREE.MeshBasicMaterial({
+      color: 0xff4444, side: THREE.DoubleSide,
+      transparent: true, opacity: 0.35
+    })
+  );
+  halo.rotation.z = Math.PI / 10;
+  topperGroup.add(halo);
+  topperGroup.userData.halo = halo;
+
+  const topLight = new THREE.PointLight(0xffe6cc, 3.2, 30);
+  topLight.position.set(0, 0.5, 1.5);
+  topperGroup.add(topLight);
+})();
+
+// ============================================================
+// 7. СПИРАЛЬНАЯ ГИРЛЯНДА С БЕГУЩЕЙ СТРОКОЙ ВОКРУГ ЁЛКИ
+// ============================================================
+const spiralPoints = [];
+const turns = 5.5;
+const samples = 260;
+for (let i = 0; i <= samples; i++) {
+  const u = i / samples; // 0 = верх, 1 = низ
+  const y = 23.6 - u * 18.8;
+  const baseR = 1.3 + u * 7.8;
+  const angle = u * turns * Math.PI * 2;
+  spiralPoints.push(new THREE.Vector3(
+    Math.cos(angle) * baseR,
+    y,
+    Math.sin(angle) * baseR
+  ));
+}
+const garlandCurve = new THREE.CatmullRomCurve3(spiralPoints);
+
+// Светящийся шнур гирлянды
+const cordGeo = new THREE.TubeGeometry(garlandCurve, 240, 0.08, 8, false);
+const cordMat = new THREE.MeshStandardMaterial({
+  color: 0xffcc44,
+  emissive: 0xff8800,
+  emissiveIntensity: 0.7,
+  roughness: 0.3
+});
+scene.add(new THREE.Mesh(cordGeo, cordMat));
+
+// Лампочки вдоль гирлянды
+const bulbColors = [0xff3333, 0xffdd33, 0x33ddff, 0x44ff66, 0xff66cc];
+const garlandBulbs = [];
+const bulbGeo = new THREE.SphereGeometry(0.16, 10, 10);
+for (let i = 0; i < 95; i++) {
+  const u = i / 95;
+  const pos = garlandCurve.getPointAt(u);
+  const col = bulbColors[i % bulbColors.length];
+  const bMat = new THREE.MeshBasicMaterial({ color: col });
+  const bulb = new THREE.Mesh(bulbGeo, bMat);
+  bulb.position.copy(pos);
+  scene.add(bulb);
+  garlandBulbs.push({ mesh: bulb, phase: i * 0.35 });
+}
+
+// ============================================================
+// 8. 3D-ЛЕНТА БЕГУЩЕЙ СТРОКИ ВДОЛЬ ГИРЛЯНДЫ (ЗАМЕДЛЕННАЯ ДЛЯ ЧТЕНИЯ)
+// ============================================================
+const tickerCanvas = document.createElement('canvas');
+tickerCanvas.width = 2048;
+tickerCanvas.height = 128;
+const tickerCtx = tickerCanvas.getContext('2d');
+
+const tickerTexture = new THREE.CanvasTexture(tickerCanvas);
+tickerTexture.wrapS = THREE.RepeatWrapping;
+tickerTexture.wrapT = THREE.ClampToEdgeWrapping;
+tickerTexture.repeat.set(4, 1);
+
+let currentRunningText = '★ НАЖМИТЕ НА ШАР С ЛОГОТИПОМ ПРЕДПРИЯТИЯ НА ЁЛКЕ — ТЕКСТ ВЫЛЕТИТ ПО ГИРЛЯНДЕ БЕГУЩЕЙ СТРОКОЙ! ';
+let currentBannerColor = '#ffd700';
+
+function updateTickerCanvas(text, accentColor) {
+  tickerCtx.clearRect(0, 0, tickerCanvas.width, tickerCanvas.height);
+
+  // Тёмно-рубиновая/золотая подложка ленты гирлянды
+  const grad = tickerCtx.createLinearGradient(0, 0, 0, tickerCanvas.height);
+  grad.addColorStop(0, 'rgba(30, 8, 12, 0.92)');
+  grad.addColorStop(0.5, 'rgba(75, 14, 20, 0.96)');
+  grad.addColorStop(1, 'rgba(30, 8, 12, 0.92)');
+  tickerCtx.fillStyle = grad;
+  tickerCtx.fillRect(0, 8, tickerCanvas.width, tickerCanvas.height - 16);
+
+  // Светящийся кант сверху и снизу
+  tickerCtx.strokeStyle = accentColor || '#ffd700';
+  tickerCtx.lineWidth = 6;
+  tickerCtx.strokeRect(0, 10, tickerCanvas.width, tickerCanvas.height - 20);
+
+  // Текст бегущей строки
+  tickerCtx.save();
+  tickerCtx.font = 'bold 54px Arial, sans-serif';
+  tickerCtx.fillStyle = '#fff7cc';
+  tickerCtx.shadowColor = accentColor || '#ffaa00';
+  tickerCtx.shadowBlur = 14;
+  tickerCtx.textBaseline = 'middle';
+
+  const repeated = (text + '   ').repeat(3);
+  tickerCtx.fillText(repeated, 20, tickerCanvas.height / 2 + 2);
+  tickerCtx.restore();
+
+  tickerTexture.needsUpdate = true;
+}
+updateTickerCanvas(currentRunningText, currentBannerColor);
+
+// Строим 3D-ленту (ribbon) вдоль спиральной гирлянды чуть снаружи от ветвей
+function buildGarlandRibbonGeometry(curve, segs, ribbonHeight, radialOffset) {
+  const geo = new THREE.BufferGeometry();
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+
+  for (let i = 0; i <= segs; i++) {
+    const u = i / segs;
+    const p = curve.getPointAt(u);
+    const outDir = new THREE.Vector3(p.x, 0, p.z).normalize();
+    const center = p.clone().addScaledVector(outDir, radialOffset);
+
+    const top = center.clone().add(new THREE.Vector3(0, ribbonHeight * 0.5, 0));
+    const bot = center.clone().add(new THREE.Vector3(0, -ribbonHeight * 0.5, 0));
+
+    positions.push(top.x, top.y, top.z);
+    positions.push(bot.x, bot.y, bot.z);
+
+    // UV вдоль спирали
+    const uCoord = (1 - u) * 2.2;
+    uvs.push(uCoord, 1);
+    uvs.push(uCoord, 0);
+
+    if (i < segs) {
+      const a = i * 2;
+      const b = a + 1;
+      const c = a + 2;
+      const d = a + 3;
+      indices.push(a, b, c, b, d, c);
+    }
+  }
+
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+const ribbonGeo = buildGarlandRibbonGeometry(garlandCurve, 300, 0.92, 0.42);
+const ribbonMat = new THREE.MeshBasicMaterial({
+  map: tickerTexture,
+  side: THREE.DoubleSide,
+  transparent: true,
+  opacity: 0.96
+});
+const garlandRibbon = new THREE.Mesh(ribbonGeo, ribbonMat);
+scene.add(garlandRibbon);
+
+// ============================================================
+// 9. ШАРЫ НА ЁЛКЕ С ЛОГОТИПАМИ ПРЕДПРИЯТИЙ
+// ============================================================
+const baubleMeshes = [];
+const baubleObjects = [];
+
+function createLogoBallTexture(ent) {
+  const c = document.createElement('canvas');
+  c.width = 1024;
+  c.height = 512;
+  const ctx = c.getContext('2d');
+
+  // Глянцевый фон шара
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, c.height);
+  bgGrad.addColorStop(0, ent.color);
+  bgGrad.addColorStop(0.5, ent.bg);
+  bgGrad.addColorStop(1, '#080c18');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, c.width, c.height);
+
+  // Золотые пояски сверху и снизу экватора
+  ctx.fillStyle = 'rgba(255, 215, 100, 0.35)';
+  ctx.fillRect(0, 95, c.width, 10);
+  ctx.fillRect(0, c.height - 105, c.width, 10);
+
+  // Рисуем логотип дважды по экватору (спереди и сзади шара)
+  [256, 768].forEach(cx => {
+    const cy = 256;
+
+    // Белый/золотой медальон под логотип
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, 138, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.fill();
+    ctx.lineWidth = 12;
+    ctx.strokeStyle = '#ffd700';
+    ctx.stroke();
+
+    // Символ сверху медальона
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#d41c24';
+    ctx.fillText(ent.symbol, cx, cy - 52);
+
+    // Крупный логотип-название предприятия
+    ctx.fillStyle = ent.bg;
+    ctx.font = '900 42px Arial';
+    ctx.fillText(ent.short, cx, cy + 16);
+
+    // Подпись «ЗНАК КАЧЕСТВА»
+    ctx.fillStyle = '#b31217';
+    ctx.font = 'bold 21px Arial';
+    ctx.fillText('★ БЕЛАРУСЬ ★', cx, cy + 68);
+    ctx.restore();
+  });
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.needsUpdate = true;
+  return tex;
+}
+
+// Размещаем 10 шаров по ярусам ёлки
+const ballPlacements = [
+  { u: 0.16, angleOffset: 0.2 },
+  { u: 0.25, angleOffset: 2.1 },
+  { u: 0.34, angleOffset: 4.0 },
+  { u: 0.43, angleOffset: 0.8 },
+  { u: 0.52, angleOffset: 2.8 },
+  { u: 0.60, angleOffset: 4.9 },
+  { u: 0.69, angleOffset: 1.5 },
+  { u: 0.77, angleOffset: 3.5 },
+  { u: 0.85, angleOffset: 5.4 },
+  { u: 0.92, angleOffset: 2.3 }
+];
+
+const ballsListEl = document.getElementById('balls-list');
+
+ENTERPRISES.forEach((ent, idx) => {
+  const place = ballPlacements[idx];
+  const y = 22.8 - place.u * 16.5;
+  const r = 1.9 + place.u * 6.8;
+  const angle = place.angleOffset + idx * 0.9;
+
+  const bx = Math.cos(angle) * r;
+  const bz = Math.sin(angle) * r;
+
+  const group = new THREE.Group();
+  group.position.set(bx, y, bz);
+
+  const logoTex = createLogoBallTexture(ent);
+  const sphereGeo = new THREE.SphereGeometry(1.12, 32, 32);
+  const sphereMat = new THREE.MeshStandardMaterial({
+    map: logoTex,
+    roughness: 0.18,
+    metalness: 0.25,
+    emissive: new THREE.Color(ent.color),
+    emissiveIntensity: 0.18
+  });
+
+  const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+  // Поворачиваем шар лицом наружу от центра ёлки
+  sphere.rotation.y = -angle;
+  sphere.castShadow = true;
+  sphere.userData = { enterpriseIndex: idx };
+  group.add(sphere);
+
+  // Золотой колпачок с петелькой
+  const cap = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.28, 0.34, 0.32, 16),
+    new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9, roughness: 0.2 })
+  );
+  cap.position.y = 1.15;
+  group.add(cap);
+
+  // Светящееся кольцо выделения вокруг выбранного шара
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(1.28, 1.48, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0xffdd55, side: THREE.DoubleSide,
+      transparent: true, opacity: 0.0
+    })
+  );
+  group.add(ring);
+
+  const ballLight = new THREE.PointLight(ent.color, 1.2, 7);
+  group.add(ballLight);
+
+  scene.add(group);
+  baubleMeshes.push(sphere);
+
+  // Кнопка в правой панели для быстрого выбора шара
+  const btn = document.createElement('button');
+  btn.className = 'ball-btn';
+  btn.innerHTML = `<span class="ball-dot" style="background:${ent.color};color:${ent.color}"></span><span><b>${ent.short}</b><br><small style="color:#a8c7e8">${ent.name}</small></span>`;
+  btn.addEventListener('click', () => triggerEnterpriseBall(idx));
+  ballsListEl.appendChild(btn);
+
+  baubleObjects.push({
+    ent,
+    group,
+    sphere,
+    ring,
+    light: ballLight,
+    btn,
+    curveU: place.u
+  });
+});
+
+// ============================================================
+// 10. ЭФФЕКТ ВЫЛЕТА ЧАСТИЦ ОТ ШАРА ПО ГИРЛЯНДЕ ПРИ КЛИКЕ
+// ============================================================
+const burstParticles = [];
+const sparkGeo = new THREE.SphereGeometry(0.18, 8, 8);
+
+function spawnBurstAlongGarland(startPos, startU, colorHex) {
+  for (let i = 0; i < 28; i++) {
+    const mat = new THREE.MeshBasicMaterial({
+      color: colorHex,
+      transparent: true,
+      opacity: 1
+    });
+    const spark = new THREE.Mesh(sparkGeo, mat);
+    spark.position.copy(startPos);
+    scene.add(spark);
+
+    burstParticles.push({
+      mesh: spark,
+      u: startU,
+      speed: (i % 2 === 0 ? 1 : -1) * (0.14 + Math.random() * 0.22),
+      life: 1.0,
+      offset: new THREE.Vector3(
+        (Math.random() - 0.5) * 0.6,
+        (Math.random() - 0.5) * 0.6,
+        (Math.random() - 0.5) * 0.6
+      )
+    });
+  }
+}
+
+let activeBallIndex = -1;
+// Сделали базовую скорость бегущей строки по 3D-гирлянде ощутимо медленнее (было 0.22 -> стало 0.11)
+const BASE_RIBBON_SPEED = 0.11;
+let ribbonFlowSpeed = BASE_RIBBON_SPEED;
+let flashTimer = 0;
+
+function triggerEnterpriseBall(idx) {
+  activeBallIndex = idx;
+  const obj = baubleObjects[idx];
+  const ent = obj.ent;
+
+  // Обновляем кнопки и подсветку шаров
+  baubleObjects.forEach((b, i) => {
+    const isSel = i === idx;
+    b.btn.classList.toggle('active', isSel);
+    b.ring.material.opacity = isSel ? 0.9 : 0.0;
+    b.light.intensity = isSel ? 3.5 : 1.2;
+    b.sphere.material.emissiveIntensity = isSel ? 0.55 : 0.18;
+  });
+
+  // Обновляем текст на 3D-гирлянде и в нижней бегущей строке
+  currentRunningText = ent.text;
+  currentBannerColor = ent.color;
+  updateTickerCanvas(ent.text, ent.color);
+
+  // Сбрасываем позицию бегущей ленты так, чтобы текст плавно и неспешно вылетал
+  tickerTexture.offset.x = 0;
+  ribbonFlowSpeed = 0.20;
+  flashTimer = 1.2;
+
+  const badgeEl = document.getElementById('garland-badge');
+  const marqueeEl = document.getElementById('marquee-text');
+  badgeEl.textContent = ent.short;
+  badgeEl.style.background = ent.color;
+  badgeEl.style.color = '#081020';
+
+  marqueeEl.style.animation = 'none';
+  void marqueeEl.offsetWidth;
+  marqueeEl.textContent = ent.text + '   ' + ent.text;
+  // Замедлили нижнюю бегущую строку (было 16s -> стало 32s)
+  marqueeEl.style.animation = 'ticker 32s linear infinite';
+
+  // Запускаем поток искр от выбранного шара по спирали гирлянды
+  spawnBurstAlongGarland(obj.group.position, obj.curveU, ent.color);
+}
+
+// ============================================================
+// 11. ОКРУЖЕНИЕ (ФОНАРИ, ЗАСНЕЖЕННЫЕ ЕЛИ, СНЕГОПАД)
+// ============================================================
+function makeSnowLamp(x, z) {
+  const g = new THREE.Group();
+  const pole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.1, 0.14, 5.2, 12),
+    new THREE.MeshStandardMaterial({ color: 0x2b3648, metalness: 0.7, roughness: 0.3 })
+  );
+  pole.position.y = 2.6;
+  pole.castShadow = true;
+  g.add(pole);
+
+  const globe = new THREE.Mesh(
+    new THREE.SphereGeometry(0.38, 14, 14),
+    new THREE.MeshBasicMaterial({ color: 0xffe299 })
+  );
+  globe.position.y = 5.3;
+  g.add(globe);
+
+  const l = new THREE.PointLight(0xffd27a, 1.1, 18);
+  l.position.y = 5.3;
+  g.add(l);
+
+  g.position.set(x, 0, z);
+  scene.add(g);
+}
+
+for (let i = 0; i < 8; i++) {
+  const a = (i / 8) * Math.PI * 2;
+  makeSnowLamp(Math.cos(a) * 18, Math.sin(a) * 18);
+}
+
+// Снегопад
+const snowCount = 900;
+const snowGeo = new THREE.BufferGeometry();
+const snowPos = new Float32Array(snowCount * 3);
+for (let i = 0; i < snowCount; i++) {
+  snowPos[i * 3]     = (Math.random() - 0.5) * 90;
+  snowPos[i * 3 + 1] = Math.random() * 45;
+  snowPos[i * 3 + 2] = (Math.random() - 0.5) * 90;
+}
+snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3));
+const snowParticles = new THREE.Points(
+  snowGeo,
+  new THREE.PointsMaterial({ color: 0xffffff, size: 0.28, transparent: true, opacity: 0.85 })
+);
+scene.add(snowParticles);
+
+// ============================================================
+// 12. УПРАВЛЕНИЕ КАМЕРОЙ + КЛИК ПО 3D-ШАРАМ (RAYCASTER)
+// ============================================================
+const camState = {
+  theta: 0.4,
+  phi: 1.18,
+  radius: 38,
+  target: new THREE.Vector3(0, 13, 0)
+};
+
+function updateCamera() {
+  camera.position.x = camState.target.x + camState.radius * Math.sin(camState.phi) * Math.sin(camState.theta);
+  camera.position.y = camState.target.y + camState.radius * Math.cos(camState.phi);
+  camera.position.z = camState.target.z + camState.radius * Math.sin(camState.phi) * Math.cos(camState.theta);
+  camera.lookAt(camState.target);
+}
+updateCamera();
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const tooltip = document.getElementById('tooltip');
+
+let dragging = false, downX = 0, downY = 0, px = 0, py = 0, mode = 1;
+const el = renderer.domElement;
+
+el.addEventListener('mousedown', e => {
+  dragging = true;
+  downX = px = e.clientX;
+  downY = py = e.clientY;
+  mode = e.button === 2 ? 2 : 1;
+});
+
+el.addEventListener('mouseup', e => {
+  const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
+  dragging = false;
+  if (moved < 6 && e.button === 0) {
+    handlePointerClick(e.clientX, e.clientY);
+  }
+});
+
+el.addEventListener('mouseleave', () => {
+  dragging = false;
+  tooltip.style.display = 'none';
+});
+
+el.addEventListener('mousemove', e => {
+  if (dragging) {
+    const dx = e.clientX - px;
+    const dy = e.clientY - py;
+    if (mode === 1) {
+      camState.theta -= dx * 0.006;
+      camState.phi -= dy * 0.006;
+      camState.phi = Math.max(0.2, Math.min(Math.PI / 2 - 0.04, camState.phi));
+    } else {
+      camState.target.x -= dx * 0.05;
+      camState.target.y += dy * 0.05;
+    }
+    px = e.clientX;
+    py = e.clientY;
+    tooltip.style.display = 'none';
+    return;
+  }
+
+  // Проверка наведения на шар
+  mouse.x = (e.clientX / innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(baubleMeshes);
+  if (hits.length > 0) {
+    const idx = hits[0].object.userData.enterpriseIndex;
+    const ent = ENTERPRISES[idx];
+    el.style.cursor = 'pointer';
+    tooltip.style.display = 'block';
+    tooltip.style.left = (e.clientX + 14) + 'px';
+    tooltip.style.top = (e.clientY + 14) + 'px';
+    tooltip.textContent = `Нажмите: ${ent.name}`;
+  } else {
+    el.style.cursor = 'grab';
+    tooltip.style.display = 'none';
+  }
+});
+
+function handlePointerClick(clientX, clientY) {
+  mouse.x = (clientX / innerWidth) * 2 - 1;
+  mouse.y = -(clientY / innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(baubleMeshes);
+  if (hits.length > 0) {
+    const idx = hits[0].object.userData.enterpriseIndex;
+    triggerEnterpriseBall(idx);
+  }
+}
+
+el.addEventListener('wheel', e => {
+  e.preventDefault();
+  camState.radius *= (1 + Math.sign(e.deltaY) * 0.08);
+  camState.radius = Math.max(16, Math.min(95, camState.radius));
+}, { passive: false });
+
+el.addEventListener('contextmenu', e => e.preventDefault());
+
+// Поддержка касаний на смартфонах и планшетах
+el.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    dragging = true;
+    downX = px = e.touches[0].clientX;
+    downY = py = e.touches[0].clientY;
+  }
+}, { passive: true });
+
+el.addEventListener('touchmove', e => {
+  if (!dragging || e.touches.length !== 1) return;
+  const dx = e.touches[0].clientX - px;
+  const dy = e.touches[0].clientY - py;
+  camState.theta -= dx * 0.006;
+  camState.phi = Math.max(0.2, Math.min(Math.PI / 2 - 0.04, camState.phi - dy * 0.006));
+  px = e.touches[0].clientX;
+  py = e.touches[0].clientY;
+}, { passive: true });
+
+el.addEventListener('touchend', e => {
+  dragging = false;
+  if (e.changedTouches.length === 1) {
+    const tx = e.changedTouches[0].clientX;
+    const ty = e.changedTouches[0].clientY;
+    if (Math.hypot(tx - downX, ty - downY) < 10) {
+      handlePointerClick(tx, ty);
+    }
+  }
+});
+
+// ============================================================
+// 13. АНИМАЦИЯ СЦЕНЫ
+// ============================================================
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.getElapsedTime();
+
+  // Вращение и пульсация «Знака качества» на макушке
+  topperGroup.rotation.y = Math.sin(t * 0.9) * 0.45;
+  if (topperGroup.userData.halo) {
+    const s = 1 + Math.sin(t * 3.0) * 0.08;
+    topperGroup.userData.halo.scale.set(s, s, 1);
+  }
+
+  // Замедленная бегущая строка по 3D-гирлянде вокруг ёлки
+  tickerTexture.offset.x += dt * ribbonFlowSpeed;
+  if (flashTimer > 0) {
+    flashTimer = Math.max(0, flashTimer - dt);
+    ribbonFlowSpeed = BASE_RIBBON_SPEED + flashTimer * 0.07;
+  }
+
+  // Мерцание огоньков гирлянды
+  garlandBulbs.forEach(b => {
+    const s = 0.85 + 0.35 * Math.sin(t * 4.0 + b.phase);
+    b.mesh.scale.setScalar(s);
+  });
+
+  // Лёгкое покачивание шаров и ориентация кольца подсветки на камеру
+  baubleObjects.forEach((b, i) => {
+    b.sphere.rotation.y += dt * (i === activeBallIndex ? 0.75 : 0.22);
+    b.ring.lookAt(camera.position);
+  });
+
+  // Движение вылетающих искр вдоль спиральной гирлянды
+  for (let i = burstParticles.length - 1; i >= 0; i--) {
+    const p = burstParticles[i];
+    p.u += p.speed * dt;
+    p.life -= dt * 0.65;
+    if (p.life <= 0 || p.u < 0 || p.u > 1) {
+      scene.remove(p.mesh);
+      burstParticles.splice(i, 1);
+    } else {
+      const curvePos = garlandCurve.getPointAt(p.u);
+      p.mesh.position.copy(curvePos).addScaledVector(p.offset, 1 - p.life);
+      p.mesh.material.opacity = p.life;
+      p.mesh.scale.setScalar(0.6 + p.life * 0.9);
+    }
+  }
+
+  // Падение снежинок
+  const posArr = snowGeo.attributes.position.array;
+  for (let i = 0; i < snowCount; i++) {
+    posArr[i * 3 + 1] -= dt * 2.6;
+    posArr[i * 3] += Math.sin(t + i) * dt * 0.3;
+    if (posArr[i * 3 + 1] < 0) {
+      posArr[i * 3 + 1] = 45;
+    }
+  }
+  snowGeo.attributes.position.needsUpdate = true;
+
+  updateCamera();
+  renderer.render(scene, camera);
+}
+animate();
+
+// ============================================================
+// 14. РЕСАЙЗ
+// ============================================================
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
